@@ -285,7 +285,7 @@ void loop() {
   switch(cur_mode)
   {
     case STARTED:
-      MotorWrite(110,100);
+      MotorWrite(125,100);
       delay(5000);
       cur_mode=STOPPED;
       break;

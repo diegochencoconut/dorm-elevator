@@ -135,7 +135,7 @@ void adjust(){
       //BT.print("Nd");
       Serial.println("Nd");
       Serial.println(cnt_step);
-      delay(600); // keep going until reach the RFID.
+      delay(800); // keep going until reach the RFID.
       if(cnt_step>=num_of_step)
       {
         turn_mode_cur=NA;
@@ -147,10 +147,10 @@ void adjust(){
       }
       if(turn_mode_cur==LEFT)
       {
-        MotorWrite(80, -80);
+        MotorWrite(92, -100);
         Serial.println("Success");
         delay(300);
-        MotorWrite(100,100);
+        MotorWrite(92,100);
         delay(1000);
         cur_mode=STOPPED;
       }

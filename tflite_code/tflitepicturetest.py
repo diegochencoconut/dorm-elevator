@@ -4,7 +4,7 @@ from tflite_support.task import core
 from tflite_support.task import processor
 
 # Initialization
-model_path = "efficientdet_lite0.tflite"
+model_path = "recog.tflite"
 base_options = core.BaseOptions(file_name=model_path)
 detection_options = processor.DetectionOptions(score_threshold=0.25)
 options = vision.ObjectDetectorOptions(base_options=base_options, detection_options=detection_options)
@@ -21,10 +21,10 @@ def object_detection_from_picture():
     for the_object in detection_result.detections:
         print(the_object.classes[0].class_name)
         print(the_object.classes[0].score)
-        print(the_object.bounding_box.origin_x)
-        print(the_object.bounding_box.origin_y)
-        print(the_object.bounding_box.width)
-        print(the_object.bounding_box.height)
+        print("x:",the_object.bounding_box.origin_x)
+        print("y:",the_object.bounding_box.origin_y)
+        print("w:",the_object.bounding_box.width)
+        print("h:",the_object.bounding_box.height)
         print("============")
     
 if __name__ == "__main__":

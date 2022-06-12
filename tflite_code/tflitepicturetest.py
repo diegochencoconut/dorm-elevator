@@ -19,13 +19,7 @@ def object_detection_from_picture():
     image = vision.TensorImage.create_from_file(image_path)
     detection_result = detector.detect(image)
     for the_object in detection_result.detections:
-        print(the_object.classes[0].class_name)
-        print(the_object.classes[0].score)
-        print("x:",the_object.bounding_box.origin_x)
-        print("y:",the_object.bounding_box.origin_y)
-        print("w:",the_object.bounding_box.width)
-        print("h:",the_object.bounding_box.height)
-        print("============")
+        return(the_object.classes[0].class_name, the_object.bounding_box.origin_x, the_object.bounding_box.origin_y, the_object.bounding_box.width, the_object.bounding_box.height)
     
 if __name__ == "__main__":
     object_detection_from_picture()
@@ -37,5 +31,5 @@ For reference:
     width: The width of the bounding box, in pixels.
     height: The height of the bounding box, in pixels.
     
-Image Size: 3280x2464 (as default)
+Image Size:  1280x720 
 '''

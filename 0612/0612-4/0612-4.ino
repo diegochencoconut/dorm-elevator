@@ -38,7 +38,7 @@ int SERVO_CAM=38;
 int SERVO_ARM=39;
 int x=0,w=0,h=0,dist;
 char label[15]={0};
-const int LBD=560,RBD=720;
+int LBD=560,RBD=720;
 String tp,cont;
 char tmp[100]={0};
 car_status a_status=READY;
@@ -162,7 +162,8 @@ void looking()
       else if(tu<0)tu=min(tu,-100);
       Serial.println(tu);
       MotorWrite(-tu,tu);
-      delay(100);
+      if (LBD != 600) delay(100);
+      else delay(50);
       MotorWrite(0,0);
       delay(500);
       Serial.println("ready");
@@ -185,12 +186,23 @@ void heading()
     {
       a_status=TARGET_FOUND;
     }
-    if(h>=230)
+    else if(h>=240)
     {
       a_status=NEAR_TARGET;
     }
     else
     {
+      if(h>=200)
+      {
+        turn_arm(OPEN);
+        LBD = 600;
+        RBD = 680;
+      }
+      else
+      {
+        LBD = 560;
+        RBD = 720;
+      }
       MotorWrite(-100,-100);
       delay(500);
       MotorWrite(0,0);

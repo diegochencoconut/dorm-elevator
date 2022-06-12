@@ -6,7 +6,8 @@ enum car_status
   TARGET_FOUND,
   HEADING,
   NEAR_TARGET,
-  TARGET_GET
+  TARGET_GET,
+  FAIL,
 };
 enum camera_status
 {
@@ -18,6 +19,11 @@ enum arm_status
 {
   OPEN=0,
   CLOSE=90
+};
+enum system_status
+{
+  FIDING,
+  STANDBY,
 };
 int i;
 int Rx=10;
@@ -42,6 +48,8 @@ int LBD=560,RBD=720;
 String tp,cont;
 char tmp[100]={0};
 car_status a_status=READY;
+system_status s_status=STANDBY;
+double last_tu = 0;
 bool In_Interval()
 {
   if(x+w/2>=LBD && x+w/2<=RBD)return true;
@@ -158,18 +166,32 @@ void looking()
       //double tu=(((x+w/2)-640)*240)/640.0;
       double tu = (( (x + w / 2) / 640.0 ) - 1) * 240;
       Serial.println(tu);
+
+      if (last_tu != 0) //not the initial status
+      {
+        if (tu*last_tu < 0 && LBD != 560) //prevent in nearby, go back and forth
+        {
+          MotorWrite(100, 100);
+          delay(100);
+          MotorWrite(0, 0);
+          delay(500);
+          Serial.println("ready");
+          waiting=true;
+          last_tu = 0;
+          return;
+        }
+      }
+      last_tu = tu;
       if(tu>0)tu=max(tu,100);
       else if(tu<0)tu=min(tu,-100);
       Serial.println(tu);
       MotorWrite(-tu,tu);
-      if (LBD != 600) delay(100);
-      else delay(50);
+      delay(100);
       MotorWrite(0,0);
       delay(500);
       Serial.println("ready");
       waiting=true;
-    }
-    
+    }  
     
   }
   
@@ -192,19 +214,28 @@ void heading()
     }
     else
     {
+      if(h<=150)
+      {
+        LBD=560;
+        RBD=680;
+        MotorWrite(-150, -150);
+        delay(350);
+      }
       if(h>=200)
       {
         turn_arm(OPEN);
         LBD = 600;
         RBD = 680;
+        MotorWrite(-100, -100);
+        delay(350);
       }
       else
       {
         LBD = 560;
         RBD = 720;
+        MotorWrite(-100,-100);
+        delay(500);
       }
-      MotorWrite(-100,-100);
-      delay(500);
       MotorWrite(0,0);
       Serial.println("ready");
       waiting=true;
@@ -223,13 +254,277 @@ void trailer()
   Serial.println("Gotcha");
   turn_camera(FRONT);
 }
-void back_home()
+/*void back_home()
 {
   MotorWrite(100,100);
   delay(1000);
   MotorWrite(0,0);
   a_status=READY;
+  s_status=STANDBY;
+}*/
+
+//=======================================BACK HOME CODE==========================================//
+
+void looking_home()
+{
+  
+  if(waiting)
+  {
+    return;
+  }
+  else 
+  {
+    if(not camera_ready)
+    {
+      turn_camera(BACK);
+      turn_camera(FRONT);
+      camera_ready=true;
+    }
+    if(not arm_ready)
+    {
+       turn_camera(FRONT);
+       arm_ready=true;
+    }
+    //MotorCheck();
+    if(In_Interval())
+    {
+      a_status=HEADING;
+    }
+    else 
+    {
+      //MotorCheck()
+      //double tu=(((x+w/2)-640)*240)/640.0;
+      double tu = (( (x + w / 2) / 640.0 ) - 1) * 240;
+      Serial.println(tu);
+
+      if (last_tu != 0) //not the initial status
+      {
+        if (tu*last_tu < 0 && LBD != 560) //prevent in nearby, go back and forth
+        {
+          MotorWrite(-100, -100);
+          delay(100);
+          MotorWrite(0, 0);
+          delay(500);
+          Serial.println("ready");
+          waiting=true;
+          last_tu = 0;
+          return;
+        }
+      }
+      last_tu = tu;
+      if(tu>0)tu=min(-tu,-100);
+      else if(tu<0)tu=max(-tu,100);
+      Serial.println(tu);
+      MotorWrite(tu,-tu);
+      delay(100);
+      MotorWrite(0,0);
+      delay(500);
+      Serial.println("ready");
+      waiting=true;
+    }  
+    
+  }
+  
 }
+void heading_home()
+{
+  if(waiting)
+  {
+    return;
+  }
+  else
+  {
+    if(not In_Interval())
+    {
+      a_status=TARGET_FOUND;
+    }
+    else if(h>=240)
+    {
+      a_status=NEAR_TARGET;
+    }
+    else
+    {
+      if(h<=150)
+      {
+        LBD=560;
+        RBD=680;
+        MotorWrite(150, 150);
+        delay(350);
+      }
+      if(h>=200)
+      {
+        turn_arm(OPEN);
+        LBD = 600;
+        RBD = 680;
+        MotorWrite(100, 100);
+        delay(350);
+      }
+      else
+      {
+        LBD = 560;
+        RBD = 720;
+        MotorWrite(100, 100);
+        delay(500);
+      }
+      MotorWrite(0,0);
+      Serial.println("ready");
+      waiting=true;
+    }
+  }
+  
+}
+void trailer_home()
+{
+  MotorWrite(100,100);
+  delay(1300);
+  MotorWrite(0,0);
+  turn_arm(OPEN);
+  a_status=TARGET_GET;
+  Serial.println("Gotcha");
+  turn_camera(BACK);
+}
+
+void back_home()
+{
+  while(s_status != STANDBY)
+  {
+    if (Serial.available() > 0) {
+      
+      MotorWrite(0,0);
+      String data = Serial.readStringUntil('\n');
+      Serial.print("Input:");
+      Serial.println(data);
+      Serial.println(waiting);
+
+      if (data == "fail")
+        a_status = TARGET_GET;
+      /*
+      Serial.print("You sent me: ");
+      Serial.println(data);
+      //*/
+      Serial.println(data[0]);
+      Serial.println(data.length());
+      if(data[0]=='l')
+      {
+        i=6;
+        while(data[i]!=0)
+        {
+          label[i-6]=data[i];
+          i++;
+        }
+        
+        Serial.println(label);
+      }
+      else if(data[0]=='x')
+      {
+        if(data[2]=='-')
+        {
+          i=3;
+          x=0;
+           while(data[i]!=0)
+          {
+            x=10*x-(data[i]-'0');
+            i++;
+          }
+        }
+        else
+        {
+          i=2;
+          x=0;
+           while(data[i]!=0)
+          {
+            x=10*x+(data[i]-'0');
+            i++;
+          }
+        }
+        Serial.print("x=");
+        Serial.println(x);
+      }
+      else if(data[0]=='h')
+      {
+        if(data[2]=='-')
+        {
+          i=3;
+          h=0;
+           while(data[i]!=0)
+          {
+            h=10*h-(data[i]-'0');
+            i++;
+          }
+        }
+        else
+        {
+          i=2;
+          h=0;
+           while(data[i]!=0)
+          {
+            h=10*h+(data[i]-'0');
+            i++;
+          }
+        }
+        if(a_status==READY)
+        {
+          a_status=TARGET_FOUND;
+        }
+        Serial.print("h=");
+        Serial.println(h);
+        Serial.println("received");
+        waiting=false;// input complete
+      }
+      else if(data[0]=='w')
+      {
+        if(data[2]=='-')
+        {
+          i=3;
+          w=0;
+           while(data[i]!=0)
+          {
+            w=10*w-(data[i]-'0');
+            i++;
+          }
+        }
+        else
+        {
+          i=2;
+          w=0;
+           while(data[i]!=0)
+          {
+            w=10*w+(data[i]-'0');
+            i++;
+          }
+        }
+        Serial.print("w=");
+        Serial.println(w);
+      }
+    }
+    switch(a_status)
+    {
+      case READY:
+        MotorWrite(0,0);
+        if(not waiting)
+        {
+          Serial.println("ready");
+          waiting=true;
+        }
+        break;
+      case TARGET_FOUND:
+        looking_home();
+        break;
+      case HEADING:
+        heading_home();
+        break;
+      case NEAR_TARGET:
+        trailer_home();
+        break;
+      case TARGET_GET:
+        s_status = STANDBY;
+        break;
+    }
+  }
+}
+
+//======================================================BACK HOME CODE========================================================================//
+
 void setup() {
   for(int i = 0; i < 5; i++){
     pinMode(Sensor[i], INPUT); //set sensor -> input
@@ -254,6 +549,31 @@ void setup() {
   
 }
 void loop() {
+  while(s_status == STANDBY)
+  {
+    MotorWrite(0.0,0.0);
+    if (BT.available() == 0) continue;
+    String ss=BT.readString();
+    s_status = FIDING;
+    if(ss=="black_tea")
+    {
+      Serial.println("black_tea");
+    }
+    else if(ss=="green_tea")
+    {
+      Serial.println("green_tea");
+    }
+    else if(ss=="soy") 
+    {
+      Serial.println("soy");
+    }
+    else if(ss=="chocolate") 
+    {
+      Serial.println("chocolate");
+    }
+    else  s_status = STANDBY;
+  }
+  
   if (Serial.available() > 0) {
     
     MotorWrite(0,0);
@@ -261,6 +581,8 @@ void loop() {
     Serial.print("Input:");
     Serial.println(data);
     Serial.println(waiting);
+    if (data == "fail")
+      a_status = TARGET_GET;
     /*
     Serial.print("You sent me: ");
     Serial.println(data);
@@ -380,7 +702,12 @@ void loop() {
       trailer();
       break;
     case TARGET_GET:
+      a_status = READY;
       back_home();
+      a_status = READY;
+      waiting=false;
+      camera_ready=false;
+      arm_ready=false;
       break;
   }
 }

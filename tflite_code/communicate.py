@@ -1,11 +1,16 @@
 import serial
 import time
+import sys
+import traceback
 from cameratest import *
+
+status = "finding"
 
 # timeout time in seconds
 timeout = 0.05
 
 def wait_cmd(ser, cmd_target):
+    global status
     print()
     print("========== wait_cmd running ==========")
     print()
@@ -19,7 +24,12 @@ def wait_cmd(ser, cmd_target):
                 print("Target cmd received.")
                 break
             if (line == "Gotcha"):
-                go_home(ser)
+                if (status == "finding"):
+                    status = "go home"
+                elif (status == "go home"):
+                    status = "finding"
+                print("status = ", status)
+                break
             time.sleep(timeout)
     print()
     print("========== wait_cmd complete =========")
@@ -38,6 +48,11 @@ def wait_target(ser):
             if len(line) > 0:
                 print("Received:", line)
 
+                if (line in target):
+                    print("Target set as", line)
+                    print("======== wait_target finish ========")
+                    return line
+
 def write_cmd(ser, cmd):
     print()
     print("========== write_cmd running ===========")
@@ -50,37 +65,74 @@ def write_cmd(ser, cmd):
     print("========== write_cmd complete ==========")
     print()
     ser.reset_output_buffer()
-
-def go_home(ser):
-    print()
-    print("========= GO HOME :) =============")
-    ser.close()
+     
 
 if __name__ == "__main__":
     
     # waiting the Arduino Mega to be prepared
-    ser = serial.Serial('/dev/ttyACM0', 9600, timeout = timeout)
-    ser.reset_input_buffer()
+    try:
+        ser = serial.Serial('/dev/ttyACM0', 9600, timeout = timeout)
+        ser.reset_input_buffer()
+    except:
+        print("ACM failed.")
+        try:
+            ser = serial.Serial('/dev/tty/USB0', 9600, timeout = timeout)
+            ser.reset_input_buffer()
+        except:
+            print("USB failed.")
+            try:
+                ser = serial.Serial('/dev/tty/AMA0', 9600, timeout = timeout)
+                ser.reset_input_buffer()
+            except:
+                print("Failed")
+                sys.exit(1)
+
     print("Serial connected.")
     print()
+    
+    try:
+        wait_cmd(ser, "Setup finish")
+        while (True):
+            target = wait_target(ser) 
+            while(status == "finding"):
+                # waiting receiving "ready"
+                wait_cmd(ser, "ready")             
+                if (status == "go home"):
+                    break
 
-    for i in range(30):
-        # waiting receiving "ready"
-        wait_cmd(ser, "ready")
+                # sending what picamera received
+                msg = find_target(target)
+                if (msg == "fail"):
+                    print("Can't find the target. Mission failed.")
+                    write_cmd(ser, "fail")
+                    status = "go home"
         
-    
-        # sending what picamera received
-        msg = find_target("soy")
-        if (msg == "fail"):
-            print("Can't find the target. Mission failed.")
-            write_cmd(ser, "fail")
-            go_home(ser)
-            break
+                else:
+                    write_cmd(ser, msg)
+            
+                # waiting receiving "received"
+                wait_cmd(ser, "received")
 
-        else:
-            write_cmd(ser, msg)
-    
-        # waiting receiving "received"
-        wait_cmd(ser, "received")
+            print("============================== GO HOME ==============================")
+            while(status == "go home"):
+                wait_cmd(ser, "ready")
 
-    go_home(ser)
+                if (status == "finding"):
+                    break
+
+                #sending what picamera received
+                msg = find_target("black_tea")
+                if (msg == "fail"):
+                    input("Can't find the target. Move me back to home and press any key to continue")
+                    write_cmd(ser, "fail")
+                    status = "finding"
+
+                else:
+                    write_cmd(ser, msg)
+
+                wait_cmd(ser, "received")
+    
+    except Exception:
+        ser.close()
+        traceback.print_exc()
+        

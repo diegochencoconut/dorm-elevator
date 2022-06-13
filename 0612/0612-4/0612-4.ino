@@ -22,7 +22,7 @@ enum arm_status
 };
 enum system_status
 {
-  FIDING,
+  FINDING,
   STANDBY,
 };
 int i;
@@ -253,6 +253,7 @@ void trailer()
   a_status=TARGET_GET;
   Serial.println("Gotcha");
   turn_camera(FRONT);
+  turn_arm(CLOSE);
 }
 /*void back_home()
 {
@@ -338,9 +339,10 @@ void heading_home()
     {
       a_status=TARGET_FOUND;
     }
-    else if(h>=240)
+    else if(h>=190)
     {
       a_status=NEAR_TARGET;
+      turn_arm(OPEN);
     }
     else
     {
@@ -351,9 +353,8 @@ void heading_home()
         MotorWrite(150, 150);
         delay(350);
       }
-      if(h>=200)
+      if(h>=170)
       {
-        turn_arm(OPEN);
         LBD = 600;
         RBD = 680;
         MotorWrite(100, 100);
@@ -386,6 +387,7 @@ void trailer_home()
 
 void back_home()
 {
+  turn_camera(FRONT);
   while(s_status != STANDBY)
   {
     if (Serial.available() > 0) {
@@ -518,7 +520,9 @@ void back_home()
         break;
       case TARGET_GET:
         s_status = STANDBY;
-        break;
+        turn_camera(BACK);
+        turn_arm(CLOSE);
+        return;
     }
   }
 }
@@ -554,7 +558,7 @@ void loop() {
     MotorWrite(0.0,0.0);
     if (BT.available() == 0) continue;
     String ss=BT.readString();
-    s_status = FIDING;
+    s_status = FINDING;
     if(ss=="black_tea")
     {
       Serial.println("black_tea");
@@ -703,6 +707,7 @@ void loop() {
       break;
     case TARGET_GET:
       a_status = READY;
+      Serial.println("ready");
       back_home();
       a_status = READY;
       waiting=false;

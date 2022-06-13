@@ -109,9 +109,12 @@ if __name__ == "__main__":
         
                 else:
                     write_cmd(ser, msg)
-            
+                
+                if status == "go home":
+                    break
                 # waiting receiving "received"
-                wait_cmd(ser, "received")
+                else:
+                    wait_cmd(ser, "received")
 
             print("============================== GO HOME ==============================")
             while(status == "go home"):
@@ -130,7 +133,10 @@ if __name__ == "__main__":
                 else:
                     write_cmd(ser, msg)
 
-                wait_cmd(ser, "received")
+                if status == "finding":
+                    break
+                else:
+                    wait_cmd(ser, "received")
     
     except Exception:
         ser.close()

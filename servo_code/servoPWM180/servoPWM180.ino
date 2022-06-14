@@ -1,4 +1,4 @@
-int myservopin = 39;
+int myservopin = 38;
 void setup() {
   pinMode(myservopin, OUTPUT);  
 }

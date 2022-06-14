@@ -79,19 +79,19 @@ void MotorWrite(double vR, double vL) {
 }
 void blind_walking()
 {
-  MotorWrite(100, 100);
+  MotorWrite(200, 200);
   if (digitalRead(Sensor[4]) == HIGH)
   {
-    delay(500);
-    MotorWrite(-100, 100);
     delay(300);
+    MotorWrite(-200, 200);
+    delay(200);
     cur_mode = ROUTE_LEFT;
   }
   else if (digitalRead(Sensor[0]) == HIGH)
   {
-    delay(500);
-    MotorWrite(100, -100);
     delay(300);
+    MotorWrite(200, -200);
+    delay(200);
     cur_mode = ROUTE_RIGHT;
   }
 }
@@ -111,9 +111,9 @@ void adjust() {
   }
   if (cnt == 0)
   {
-    if (cur_mode == ROUTE_RIGHT)MotorWrite(70, -60);
-    else if (cur_mode == ROUTE_LEFT)MotorWrite(-60, 70);
-    else MotorWrite(70, -50);
+    if (cur_mode == ROUTE_RIGHT)MotorWrite(140, -120);
+    else if (cur_mode == ROUTE_LEFT)MotorWrite(-120, 140);
+    else MotorWrite(140, -100);
   }
   else {
     average = total / cnt; // calculate the current average
@@ -124,9 +124,9 @@ void adjust() {
         turn_mode_cur = turn_mode_input[min(cnt_step, num_of_step - 1)];
       }
       turning = 0;
-      double V_sR = 100; // the velocity of going straight (CHANGE HERE!)
-      double V_sL = 100;
-      double K_p = 15; // P control term (CHANGE HERE!)
+      double V_sR = 200; // the velocity of going straight (CHANGE HERE!)
+      double V_sL = 200;
+      double K_p = 30; // P control term (CHANGE HERE!)
       double K_i = 0;  // I control term (CHANGE HERE!)
       double K_d = 0;  // D control term (CHANGE HERE!)
 
@@ -136,7 +136,7 @@ void adjust() {
       MotorWrite(min(V_sR + K_p * offset - K_d * diff + K_i * sum_offset, 255), min(V_sL - K_p * offset + K_d * diff - K_i * sum_offset, 255));
     }
     else {
-      MotorWrite(100, 100);
+      MotorWrite(200, 200);
       delay(700);
       if (cur_mode == ROUTE_LEFT)
       {

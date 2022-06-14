@@ -25,6 +25,7 @@ enum system_status
   FINDING,
   STANDBY,
 };
+int i = 0;
 int Rx=10;
 int Tx=11;
 int Sensor[5]={21, 20, 19, 18, 17};

@@ -2,6 +2,8 @@ from picamera import PiCamera
 import time
 from tflitepicturetest import *
 
+attempt_times = 5
+
 def find_target(target):
     print()
     print("======================= find_target start =============================")
@@ -16,17 +18,19 @@ def find_target(target):
     # camera parameters settings
     camera.resolution = (1280, 720)
     camera.capture("img.jpg")
+    saved_image_name = "debug/" + str(time.localtime()) + ".jpg"
+    camera.capture(saved_image_name)
     print("Camera initialized.")
     print()
 
-    n = 3 #repeat attempts
-    for i in range (n):
+    global attempt_times
+    for i in range (attempt_times):
         print()
         print("Start capturing photo......")
         camera.capture("img.jpg")
         print("Photo captured, recognizing......")
         print()
-        print("Finding object: attempt", i+1, "of", n)
+        print("Finding object: attempt", i+1, "of", attempt_times)
         print()
         (label, x, y, w, h) = object_detection(target)
         if (label != target):
